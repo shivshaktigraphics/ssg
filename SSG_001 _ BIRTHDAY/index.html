@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Image Creator with Shine Animation</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{ --bg:#f6f8fc; --card:#ffffff; --text:#0b1220; --muted:#6b7890; --line:#e6e9ef; --brand:#0096C7; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Roboto', system-ui}
+  header{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--line);z-index:10}
+  .wrap{max-width:1200px;margin:auto;padding:16px}
+  h1{font-size:20px;margin:0}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .btn,.pick,.text,select,input[type="color"]{
+    padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--text); transition: background-color 0.2s;
+  }
+  .btn{
+    background:var(--brand);
+    color:#fff;
+    border-color:var(--brand);
+    cursor:pointer;
+    position: relative; /* Needed for the shine effect */
+    overflow: hidden;   /* Needed for the shine effect */
+  }
+  .btn:hover{background-color:#0077a2;}
+  .btn:disabled{background:var(--muted); border-color:var(--muted); cursor:not-allowed;}
+  .grid{display:grid;grid-template-columns:1fr;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .canvas-wrap{display:flex;justify-content:center;align-items:center;background:#fff;border:1px dashed var(--line);border-radius:14px;padding:8px;overflow:auto}
+  canvas{display:block;max-width:100%;height:auto;border-radius:10px}
+  
+  .status{
+    display:none;
+    margin-top: -10px;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-align: center;
+    border: 1px solid var(--line);
+  }
+
+  .page-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 0 20px;
+  }
+  .main-content-column {
+    width: 100%;
+    max-width: 1200px;
+    flex-shrink: 0;
+  }
+  .ad-sidebar {
+    width: 160px;
+    flex-shrink: 0;
+  }
+  .ad-sidebar .ad-box {
+    position: sticky;
+    top: 20px;
+    height: 600px;
+  }
+  .ad-container { padding: 0; margin: 0; }
+  .ad-horizontal-top { margin-top: 16px; }
+  .ad-horizontal-bottom { margin-top: 12px; margin-bottom: 16px; }
+  .ad-box {
+    background: #f0f0f0;
+    border: 1px dashed #ccc;
+    border-radius: 14px;
+    width: 100%;
+    height: 100%;
+    min-height: 90px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+    overflow: hidden;
+  }
+
+  /* Shine Animation CSS */
+  .btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    transform: translateX(-100%);
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  }
+  .btn-ready::after {
+    animation: shine 2.5s infinite;
+    animation-delay: 0.5s;
+  }
+  @keyframes shine {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @media (max-width: 1600px) {
+    .ad-sidebar { display: none; }
+    .page-wrapper { padding: 0; gap: 0; }
+  }
+
+</style>
+</head>
+<body>
+
+<div style="display:none;">
+  <img id="templateImage" src="template.png" alt="Template">
+</div>
+
+<div class="page-wrapper">
+  <aside class="ad-sidebar ad-sidebar-left">
+    <div class="ad-box">
+      <img id="adImgLeft" src="ad_left.png" alt="Advertisement" style="width:100%; height:auto; display:block;">
+      <div id="adPlaceholderLeft">
+        <span>Advertisement (160x600)</span>
+        <strong>ad_left.png</strong>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main-content-column">
+    <header>
+      <div class="wrap bar"><h1>SHIVSHAKTI GRAPHICS</h1></div>
+      <div class="wrap"><div id="status" class="status"></div></div>
+    </header>
+
+    <div class="wrap">
+      <div class="ad-container ad-horizontal-top">
+        <div class="ad-box">
+          <img id="adImgTop" src="ad_top.png" alt="Advertisement" style="width:100%; height:auto; display:block;">
+          <div id="adPlaceholderTop">
+            <span>Advertisement (728x90)</span>
+            <strong>ad_top.png</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <main class="wrap grid">
+      <section class="card">
+        <div class="row">
+          <label class="pick">📷 Upload Photo
+            <input id="pickPhoto" type="file" accept="image/*" style="display:none">
+          </label>
+          <input id="nameInput" class="text" type="text" placeholder="Enter your name">
+          <label class="row" style="gap:6px">
+            <span>Color</span><input id="nameColor" type="color" value="#FFFFFF">
+          </label>
+          <button id="save" class="btn">📥 Download Image</button>
+        </div>
+      </section>
+      <section class="card">
+        <div class="canvas-wrap"><canvas id="c"></canvas></div>
+      </section>
+    </main>
+
+    <div class="wrap">
+      <div class="ad-container ad-horizontal-bottom">
+        <div class="ad-box">
+          <img id="adImgBottom" src="ad_bottom.png" alt="Advertisement" style="width:100%; height:auto; display:block;">
+          <div id="adPlaceholderBottom">
+            <span>Advertisement (728x90)</span>
+            <strong>ad_bottom.png</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="ad-sidebar ad-sidebar-right">
+    <div class="ad-box">
+      <img id="adImgRight" src="ad_right.png" alt="Advertisement" style="width:100%; height:auto; display:block;">
+      <div id="adPlaceholderRight">
+        <span>Advertisement (160x600)</span>
+        <strong>ad_right.png</strong>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<script>
+/* ===== CONFIG ===== */
+const CONFIG = {
+  w: 945, h: 945,
+  photo: { x: 340, y: 333, w: 275, h: 341, radius: 50 },
+  name: {
+    x: 470, y: 738, maxWidth: 400, fontSize: 30, weight: 700,
+    align: 'center', color: '#992820', fontFamily: "'Roboto', system-ui"
+  },
+};
+
+const els = {
+  c: document.getElementById('c'),
+  pickPhoto: document.getElementById('pickPhoto'),
+  nameInput: document.getElementById('nameInput'),
+  nameColor: document.getElementById('nameColor'),
+  save: document.getElementById('save'),
+  status: document.getElementById('status')
+};
+
+const ctx = els.c.getContext('2d');
+let bgImg = null;
+let photoImg = null;
+let nameText = '';
+
+/* ===== UTILITY FUNCTIONS ===== */
+function setCanvasSize(w,h){ els.c.width = w; els.c.height = h; }
+function loadImageFromFile(file){
+  return new Promise((res,rej)=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{ URL.revokeObjectURL(url); res(img); };
+    img.onerror = rej; img.src = url;
+  });
+}
+function drawRoundedRect(ctx, x,y,w,h,r){
+  const rr = Math.max(0, Math.min(r, Math.min(w,h)/2));
+  ctx.beginPath();
+  ctx.moveTo(x+rr, y); ctx.lineTo(x+w-rr, y); ctx.quadraticCurveTo(x+w, y, x+w, y+rr);
+  ctx.lineTo(x+w, y+h-rr); ctx.quadraticCurveTo(x+w, y+h, x+w-rr, y+h);
+  ctx.lineTo(x+rr, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-rr);
+  ctx.lineTo(x, y+rr); ctx.quadraticCurveTo(x, y, x+rr, y);
+  ctx.closePath();
+}
+function drawImageCover(ctx, img, dx,dy,dW,dH){
+  const sW = img.naturalWidth || img.width; const sH = img.naturalHeight || img.height;
+  const r = Math.max(dW/sW, dH/sH);
+  const sx = (sW*r - dW)/2/r, sy = (sH*r - dH)/2/r;
+  ctx.drawImage(img, sx, sy, dW/r, dH/r, dx, dy, dW, dH);
+}
+function fitFontSize(ctx, text, base, maxWidth, weight, family){
+  let size = base;
+  ctx.font = `${weight} ${size}px ${family}`;
+  while (ctx.measureText(text).width > maxWidth && size > 8){
+    size--; ctx.font = `${weight} ${size}px ${family}`;
+  }
+  return size;
+}
+
+/* ===== DRAWING LOGIC ===== */
+function redraw(){
+  const {w,h,photo,name} = CONFIG;
+  setCanvasSize(w,h);
+  ctx.clearRect(0,0,w,h);
+  if (bgImg && bgImg.complete && bgImg.naturalWidth !== 0) {
+    ctx.drawImage(bgImg, 0, 0, w, h);
+  } else { 
+    ctx.fillStyle = '#DDDDDD'; 
+    ctx.fillRect(0,0,w,h);
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'center';
+    ctx.font = '30px "Roboto"';
+    ctx.fillText("template.png file not found.", w/2, h/2);
+  }
+  if (photoImg){
+    ctx.save();
+    drawRoundedRect(ctx, photo.x, photo.y, photo.w, photo.h, photo.radius||0);
+    ctx.clip();
+    drawImageCover(ctx, photoImg, photo.x, photo.y, photo.w, photo.h);
+    ctx.restore();
+  }
+  const nameTxt = nameText || 'Your Name';
+  const nSize = fitFontSize(ctx, nameTxt, name.fontSize, name.maxWidth, name.weight, name.fontFamily);
+  ctx.font = `${name.weight} ${nSize}px ${name.fontFamily}`;
+  ctx.fillStyle = name.color;
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'center';
+  ctx.save(); ctx.shadowColor='rgba(0,0,0,0.15)'; ctx.shadowBlur=6; ctx.shadowOffsetY=2;
+  ctx.fillText(nameTxt, name.x, name.y, name.maxWidth);
+  ctx.restore();
+}
+
+/* ===== DOWNLOAD FUNCTION ===== */
+async function downloadPNG(canvas, filename) {
+    return new Promise((resolve, reject) => {
+        try {
+            canvas.toBlob((blob) => {
+                if (!blob) {
+                    reject(new Error('Canvas to Blob conversion failed.'));
+                    return;
+                }
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                resolve();
+            }, 'image/png');
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
+/* ===== EVENT LISTENERS ===== */
+els.pickPhoto.addEventListener('change', async e=>{
+  const f=e.target.files?.[0]; if(!f) return;
+  photoImg = await loadImageFromFile(f); 
+  redraw();
+  els.save.classList.add('btn-ready');
+});
+els.nameInput.addEventListener('input', e=>{ nameText = e.target.value; redraw(); });
+els.nameColor.addEventListener('input', e=>{ CONFIG.name.color = e.target.value; redraw(); });
+
+/* ===== SECURE DOWNLOAD LOGIC ===== */
+async function getSafeImage(imgElement) {
+    if (!imgElement || !imgElement.complete || imgElement.naturalWidth === 0) {
+        return null;
+    }
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = imgElement.naturalWidth;
+    tempCanvas.height = imgElement.naturalHeight;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(imgElement, 0, 0);
+    const dataURL = tempCanvas.toDataURL('image/png');
+
+    return new Promise((resolve) => {
+        const safeImage = new Image();
+        safeImage.onload = () => resolve(safeImage);
+        safeImage.onerror = () => resolve(null);
+        safeImage.src = dataURL;
+    });
+}
+
+els.save.addEventListener('click', async () => {
+    els.save.disabled = true;
+    els.save.textContent = 'Preparing...';
+    els.status.style.display = 'block';
+    els.status.style.color = 'var(--text)';
+    
+    try {
+        els.status.textContent = 'Securing images...';
+        
+        const safeBgImg = await getSafeImage(bgImg);
+        const safePhotoImg = await getSafeImage(photoImg);
+
+        els.status.textContent = 'Creating high-quality image...';
+        await new Promise(res => setTimeout(res, 50));
+        
+        const scale = 2;
+        const { w, h } = CONFIG;
+        const out = document.createElement('canvas');
+        out.width = w * scale;
+        out.height = h * scale;
+        const octx = out.getContext('2d');
+        octx.imageSmoothingEnabled = true;
+        octx.imageSmoothingQuality = 'high';
+        octx.scale(scale, scale);
+
+        if (safeBgImg) octx.drawImage(safeBgImg, 0, 0, w, h);
+        else { octx.fillStyle = '#ffffff'; octx.fillRect(0, 0, w, h); }
+        
+        if (safePhotoImg) {
+            octx.save();
+            drawRoundedRect(octx, CONFIG.photo.x, CONFIG.photo.y, CONFIG.photo.w, CONFIG.photo.h, CONFIG.photo.radius || 0);
+            octx.clip();
+            drawImageCover(octx, safePhotoImg, CONFIG.photo.x, CONFIG.photo.y, CONFIG.photo.w, CONFIG.photo.h);
+            octx.restore();
+        }
+        
+        const n = CONFIG.name;
+        const txt = nameText || 'Your Name';
+        const size = fitFontSize(octx, txt, n.fontSize, n.maxWidth, n.weight, n.fontFamily);
+        octx.font = `${n.weight} ${size}px ${n.fontFamily}`;
+        octx.fillStyle = n.color;
+        octx.textBaseline = 'alphabetic';
+        octx.textAlign = 'center';
+        octx.save(); octx.shadowColor = 'rgba(0,0,0,0.15)'; octx.shadowBlur = 6; octx.shadowOffsetY = 2;
+        octx.fillText(txt, n.x, n.y, n.maxWidth);
+        octx.restore();
+
+        const filename = `ssg_poster-${Date.now()}.png`;
+        await downloadPNG(out, filename);
+
+        els.status.textContent = 'Download started successfully!';
+        els.status.style.color = 'green';
+    } catch (e) {
+        console.error(e);
+        els.status.textContent = 'Download failed. Files might not be loaded correctly.';
+        els.status.style.color = 'red';
+    } finally {
+        els.save.disabled = false;
+        els.save.textContent = '📥 Download PNG';
+        setTimeout(() => { els.status.style.display = 'none'; }, 6000);
+    }
+});
+
+/* ===== INITIALIZATION ===== */
+function setupAds() {
+  const adSlots = [
+    { imgId: 'adImgTop', placeholderId: 'adPlaceholderTop' },
+    { imgId: 'adImgBottom', placeholderId: 'adPlaceholderBottom' },
+    { imgId: 'adImgLeft', placeholderId: 'adPlaceholderLeft' },
+    { imgId: 'adImgRight', placeholderId: 'adPlaceholderRight' }
+  ];
+
+  adSlots.forEach(slot => {
+    const img = document.getElementById(slot.imgId);
+    const placeholder = document.getElementById(slot.placeholderId);
+    
+    if (img && placeholder) {
+      if (img.complete && img.naturalWidth !== 0) {
+        placeholder.style.display = 'none';
+        img.style.display = 'block';
+        const adBox = img.closest('.ad-box');
+        if(adBox){
+          adBox.style.padding = '0';
+          adBox.style.border = 'none';
+          adBox.style.background = 'transparent';
+        }
+      } else {
+        img.style.display = 'none';
+        placeholder.style.display = 'flex';
+      }
+    }
+  });
+}
+
+window.addEventListener('load', () => {
+  const templateImgElement = document.getElementById('templateImage');
+  if (templateImgElement && templateImgElement.complete && templateImgElement.naturalWidth !== 0) {
+    bgImg = templateImgElement;
+  }
+  redraw();
+  setupAds();
+});
+
+</script>
+
+</body>
+</html>
